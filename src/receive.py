@@ -30,15 +30,20 @@
 
 import pika
 import logging
+import time
 
 def cb(ch, method, properties, body):
     print " [x] Received %r" % body
+    time.sleep(body.count('.'))
+    print " [x] Done"
+    ch.basic_ack(delivery_tag = method.delivery_tag)
 
 logging.basicConfig()
 conn = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 chan = conn.channel()
-chan.queue_declare(queue='hello')
-chan.basic_consume(cb, queue='hello', no_ack=True)
+chan.queue_declare(queue='task_queue', durable=True)
+chan.basic_qos(prefetch_count=1)
+chan.basic_consume(cb, queue='task_queue')
 print ' [*] Waiting for messages. To exit press CTRL+C'
 try:
     chan.start_consuming()
